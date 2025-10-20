@@ -1,5 +1,5 @@
-# Bot Telegram
 python-telegram-bot==20.0
 requests==2.31.0
-numpy==1.27.5
+numpy==1.26.4
 pandas==2.1.1
+flask==2.3.3
