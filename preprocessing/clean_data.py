@@ -7,7 +7,7 @@ def limpar_texto(texto):
     texto = ''.join(c for c in unicodedata.normalize('NFD', texto)
                     if unicodedata.category(c) != 'Mn')
     texto = re.sub(r"http\S+|www\S+|https\S+", '', texto)
-    texto = re.sub(r"[^a-zA-Z\s]", '', texto)
+    texto = re.sub(r"[^a-zA-Z0-9\s]", '', texto)
     texto = re.sub(r"\s+", " ", texto).strip()
     return texto
 
