@@ -4,6 +4,20 @@ import unicodedata
 import numpy as np
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+import serial
+import time
+
+# 🔹 Configuração do Arduino
+arduino = serial.Serial('COM3', 9600)  # Ajuste a porta
+time.sleep(2)  # espera a conexão
+
+def acender_led(resultado):
+    if resultado == "veridica":
+        arduino.write(b'V')  # verde
+    elif resultado == "falsa":
+        arduino.write(b'R')  # vermelho
+    else:  # indeciso
+        arduino.write(b'A')  # amarelo
 
 # 🔹 Carregar modelo e vetorizar
 model = joblib.load("models/modelo_golpe.pkl")
@@ -53,6 +67,11 @@ async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Caso contrário, classifica normalmente
     resultado, confianca = prever_com_confianca(update.message.text)
+    
+    # 🔹 Acende o LED correspondente
+    acender_led(resultado)
+    
+    # 🔹 Envia resposta no Telegram
     resposta_amigavel = gerar_resposta(resultado)
     resposta_completa = f"{resposta_amigavel} (Confiança: {confianca:.2f})"
     await update.message.reply_text(resposta_completa)
