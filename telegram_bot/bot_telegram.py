@@ -4,26 +4,45 @@ import unicodedata
 import numpy as np
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-import serial
 import time
 
-# 🔹 Configuração do Arduino
-arduino = serial.Serial('COM3', 9600)  # Ajuste a porta
-time.sleep(2)  # espera a conexão
+# 🔹 Tenta importar PySerial, mas não quebra se não houver
+try:
+    import serial
+    serial_disponivel = True
+except ImportError:
+    print("⚠️ PySerial não instalado ou não disponível")
+    serial_disponivel = False
 
+# 🔹 Configuração do Arduino
+arduino_disponivel = False
+if serial_disponivel:
+    try:
+        # Ajuste a porta conforme seu sistema
+        # Windows: 'COM3', Linux: '/dev/ttyUSB0' ou '/dev/ttyACM0'
+        arduino = serial.Serial('COM3', 9600)
+        time.sleep(2)
+        arduino_disponivel = True
+        print("✅ Arduino conectado")
+    except Exception as e:
+        print(f"⚠️ Arduino não encontrado: {e}")
+
+# 🔹 Função para acender LED
 def acender_led(resultado):
+    if not arduino_disponivel:
+        return  # não faz nada se Arduino não estiver conectado
     if resultado == "veridica":
         arduino.write(b'V')  # verde
     elif resultado == "falsa":
         arduino.write(b'R')  # vermelho
-    else:  # indeciso
+    else:
         arduino.write(b'A')  # amarelo
 
 # 🔹 Carregar modelo e vetorizar
 model = joblib.load("models/modelo_golpe.pkl")
 vectorizer = joblib.load("models/vectorizer_golpe.pkl")
 
-# 🔹 Função de limpeza
+# 🔹 Função de limpeza de texto
 def limpar_texto(texto):
     texto = str(texto).lower()
     texto = ''.join(c for c in unicodedata.normalize('NFD', texto)
@@ -57,21 +76,16 @@ def gerar_resposta(resultado):
 # 🔹 Handler de mensagens
 async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensagem = update.message.text.strip().lower()
-    
-    # Se a mensagem for "oi" ou variação, envia a mensagem de boas-vindas
+
     if mensagem in ["oi", "olá", "ola", "hello", "hi"]:
         await update.message.reply_text(
             "Olá! Mande uma mensagem e eu direi se é falsa, verídica ou indecisa."
         )
         return
-    
-    # Caso contrário, classifica normalmente
+
     resultado, confianca = prever_com_confianca(update.message.text)
-    
-    # 🔹 Acende o LED correspondente
     acender_led(resultado)
-    
-    # 🔹 Envia resposta no Telegram
+
     resposta_amigavel = gerar_resposta(resultado)
     resposta_completa = f"{resposta_amigavel} (Confiança: {confianca:.2f})"
     await update.message.reply_text(resposta_completa)
@@ -86,9 +100,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 if __name__ == "__main__":
     TOKEN = "8184284628:AAH0yhMSVaAUzEUZ-C-lFdRd0Ar8Z54fOH8"
     app = ApplicationBuilder().token(TOKEN).build()
-    
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, responder))
-    
+
     print("Bot rodando...")
     app.run_polling()
