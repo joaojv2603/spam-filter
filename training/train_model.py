@@ -4,10 +4,13 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score, classification_report
 import joblib
-import numpy as np
 
 # Lê CSV limpo
 df = pd.read_csv("data/dataset_limpo.csv")
+
+# Remove linhas com texto nulo para evitar erro na vetorização
+df = df.dropna(subset=["clean_text"])
+
 X_train, X_test, y_train, y_test = train_test_split(
     df["clean_text"], df["label"], test_size=0.2, random_state=42
 )
