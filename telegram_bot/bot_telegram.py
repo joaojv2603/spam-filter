@@ -6,7 +6,6 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 import time
 
-# 🔹 Tenta importar PySerial, mas não quebra se não houver
 try:
     import serial
     serial_disponivel = True
@@ -14,12 +13,9 @@ except ImportError:
     print("⚠️ PySerial não instalado ou não disponível")
     serial_disponivel = False
 
-# 🔹 Configuração do Arduino
 arduino_disponivel = False
 if serial_disponivel:
     try:
-        # Ajuste a porta conforme seu sistema
-        # Windows: 'COM3', Linux: '/dev/ttyUSB0' ou '/dev/ttyACM0'
         arduino = serial.Serial('COM3', 9600)
         time.sleep(2)
         arduino_disponivel = True
@@ -27,22 +23,19 @@ if serial_disponivel:
     except Exception as e:
         print(f"⚠️ Arduino não encontrado: {e}")
 
-# 🔹 Função para acender LED
 def acender_led(resultado):
     if not arduino_disponivel:
-        return  # não faz nada se Arduino não estiver conectado
+        return
     if resultado == "veridica":
-        arduino.write(b'V')  # verde
+        arduino.write(b'V')
     elif resultado == "falsa":
-        arduino.write(b'R')  # vermelho
+        arduino.write(b'R')
     else:
-        arduino.write(b'A')  # amarelo
+        arduino.write(b'A')
 
-# 🔹 Carregar modelo e vetorizar
 model = joblib.load("models/modelo_golpe.pkl")
 vectorizer = joblib.load("models/vectorizer_golpe.pkl")
 
-# 🔹 Função de limpeza de texto
 def limpar_texto(texto):
     texto = str(texto).lower()
     texto = ''.join(c for c in unicodedata.normalize('NFD', texto)
@@ -52,7 +45,6 @@ def limpar_texto(texto):
     texto = re.sub(r"\s+", " ", texto).strip()
     return texto
 
-# 🔹 Função de previsão com confiança
 def prever_com_confianca(texto, limiar_indeciso=0.65):
     texto_limpo = limpar_texto(texto)
     texto_vec = vectorizer.transform([texto_limpo])
@@ -64,7 +56,6 @@ def prever_com_confianca(texto, limiar_indeciso=0.65):
     else:
         return classes[np.argmax(probs)], max_prob
 
-# 🔹 Resposta amigável
 def gerar_resposta(resultado):
     if resultado == "falsa":
         return "⚠️ Atenção! Essa mensagem parece ser um golpe."
@@ -73,7 +64,6 @@ def gerar_resposta(resultado):
     else:
         return "🤔 Não tenho certeza sobre essa mensagem. Pode ser indecisa."
 
-# 🔹 Handler de mensagens
 async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensagem = update.message.text.strip().lower()
 
@@ -90,13 +80,11 @@ async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
     resposta_completa = f"{resposta_amigavel} (Confiança: {confianca:.2f})"
     await update.message.reply_text(resposta_completa)
 
-# 🔹 Handler de start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Olá! Mande uma mensagem e eu direi se é falsa, verídica ou indecisa."
     )
 
-# 🔹 Criar e rodar o bot
 if __name__ == "__main__":
     TOKEN = "8184284628:AAH0yhMSVaAUzEUZ-C-lFdRd0Ar8Z54fOH8"
     app = ApplicationBuilder().token(TOKEN).build()
