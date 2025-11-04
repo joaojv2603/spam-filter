@@ -16,7 +16,7 @@ except ImportError:
 arduino_disponivel = False
 if serial_disponivel:
     try:
-        arduino = serial.Serial('COM3', 9600)
+        arduino = serial.Serial('COM1', 9600)
         time.sleep(2)
         arduino_disponivel = True
         print("✅ Arduino conectado")
